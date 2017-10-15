@@ -1,6 +1,6 @@
 function UsersController(UsersService) {  
   var $ctrl = this;
-
+  console.log(arguments);
   /* Stored game objects. */
   $ctrl.users = [];
 
@@ -17,5 +17,6 @@ function UsersController(UsersService) {
 angular.module("Users")  
   .controller("UsersController", [
     "UsersService",
+    "api",
     UsersController
   ]);

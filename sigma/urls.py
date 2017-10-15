@@ -16,16 +16,22 @@ Including another URLconf
 from django.conf.urls import url, include
 from django.contrib import admin
 from rest_framework import routers
-from api import views
-from django.views.generic import TemplateView
+from django.contrib.auth import views as auth_views
+from api import views as apiViews
+from views import IndexView
+from rest_framework.authtoken import views
 
 router = routers.DefaultRouter()
-router.register(r'users', views.UserViewSet)
-router.register(r'groups', views.GroupViewSet)
+router.register(r'users', apiViews.UserViewSet)
+router.register(r'groups', apiViews.GroupViewSet)
 
 urlpatterns = [
+    url(r'^api-token-auth/', views.obtain_auth_token),
+    url(r'^login', auth_views.login, name='login'),
+    url(r'^logout', auth_views.logout, name='logout'),
 	url(r'^api/v1/', include(router.urls)),
-    url(r'^$', TemplateView.as_view(template_name="app/index.html"), name='index'), 
+
+    url(r'^$', IndexView.as_view(), name='index'),
     url(r'^admin/', admin.site.urls),
     url(r'^api-auth/', include('rest_framework.urls', namespace='rest_framework')),
 ]

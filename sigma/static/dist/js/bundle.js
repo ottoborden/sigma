@@ -48,31 +48,84 @@
 	__webpack_require__(1);  
 	__webpack_require__(2);  
 	__webpack_require__(3);
+	__webpack_require__(4);
 
 	/* Globals */
-	_ = __webpack_require__(4);  
+	_ = __webpack_require__(6);  
 	_urlPrefixes = {  
 	  API: "api/v1/",
 	  TEMPLATES: "static/app/"
 	};
 
 	/* Components */
-	__webpack_require__(6);
 	__webpack_require__(8);
+	__webpack_require__(10);
+	__webpack_require__(13);
 
 	/* App Dependencies */
 	angular.module("myApp", [  
-	  "Home", // this is our component
+	  "Home",
 	  "Users",
+	  "NavButton",
 	  "ngResource",
-	  "ngRoute"
+	  "ngRoute",
+	  "ngCookies"
 	]);
 
+	/* Resources */
+	__webpack_require__(14);
+
 	/* Config Vars */
-	var routesConfig = __webpack_require__(11); 
+	var routesConfig = __webpack_require__(15); 
 
 	/* App Config */
-	angular.module("myApp").config(routesConfig);
+	angular.module("myApp")
+	  .config(routesConfig)
+	  .config(function($httpProvider) {
+	    $httpProvider.defaults.headers.common["X-Requested-With"] = "XMLHttpRequest";
+	    $httpProvider.defaults.xsrfCookieName = "csrftoken";
+	    $httpProvider.defaults.xsrfHeaderName = "X-CSRFToken";
+	  })
+	  .factory("LocalAuth", ["$cookies", function ($cookies) {
+	    return {
+	      user : {},
+
+	      getToken: function(tokenName) {
+	        var name = tokenName ? tokenName : "token";
+	        return $cookies.get(name);
+	      },
+
+	      set: function(tokenName, data) {
+	        // you can retrive a user setted from another page, like login sucessful page.
+	        var name = tokenName ? tokenName : "token";
+	        var existing_cookie_value = $cookies.get(name);
+	        var val = data || existing_cookie_value;
+	        $cookies.put(name, val);
+	      },
+
+	      remove: function(tokenName) {
+	        var name = tokenName ? tokenName : "token";
+	        $cookies.remove(name);
+	      }
+	    };
+	  }])
+	  .service("UserStore", function() {
+	    return {
+	      isAuthed: false
+	    };
+	  })
+	  .run(["authApi", "LocalAuth", "UserStore", function(authApi, LocalAuth, UserStore) {
+	    var token = LocalAuth.getToken();
+
+	    // Determine if there is a token
+	    // If there is hit the API and get the associated user, else set unauthed
+	    if (!token) {
+	      UserStore.isAuthed = false;
+	    } else {
+	      console.log(authApi);
+	      // authApi.auth.isAuthed();
+	    }
+	  }]);
 
 /***/ },
 /* 1 */
@@ -36080,6 +36133,351 @@
 /* 4 */
 /***/ function(module, exports, __webpack_require__) {
 
+	__webpack_require__(5);
+	module.exports = 'ngCookies';
+
+
+/***/ },
+/* 5 */
+/***/ function(module, exports) {
+
+	/**
+	 * @license AngularJS v1.6.6
+	 * (c) 2010-2017 Google, Inc. http://angularjs.org
+	 * License: MIT
+	 */
+	(function(window, angular) {'use strict';
+
+	/**
+	 * @ngdoc module
+	 * @name ngCookies
+	 * @description
+	 *
+	 * # ngCookies
+	 *
+	 * The `ngCookies` module provides a convenient wrapper for reading and writing browser cookies.
+	 *
+	 *
+	 * <div doc-module-components="ngCookies"></div>
+	 *
+	 * See {@link ngCookies.$cookies `$cookies`} for usage.
+	 */
+
+
+	angular.module('ngCookies', ['ng']).
+	  info({ angularVersion: '1.6.6' }).
+	  /**
+	   * @ngdoc provider
+	   * @name $cookiesProvider
+	   * @description
+	   * Use `$cookiesProvider` to change the default behavior of the {@link ngCookies.$cookies $cookies} service.
+	   * */
+	   provider('$cookies', [/** @this */function $CookiesProvider() {
+	    /**
+	     * @ngdoc property
+	     * @name $cookiesProvider#defaults
+	     * @description
+	     *
+	     * Object containing default options to pass when setting cookies.
+	     *
+	     * The object may have following properties:
+	     *
+	     * - **path** - `{string}` - The cookie will be available only for this path and its
+	     *   sub-paths. By default, this is the URL that appears in your `<base>` tag.
+	     * - **domain** - `{string}` - The cookie will be available only for this domain and
+	     *   its sub-domains. For security reasons the user agent will not accept the cookie
+	     *   if the current domain is not a sub-domain of this domain or equal to it.
+	     * - **expires** - `{string|Date}` - String of the form "Wdy, DD Mon YYYY HH:MM:SS GMT"
+	     *   or a Date object indicating the exact date/time this cookie will expire.
+	     * - **secure** - `{boolean}` - If `true`, then the cookie will only be available through a
+	     *   secured connection.
+	     *
+	     * Note: By default, the address that appears in your `<base>` tag will be used as the path.
+	     * This is important so that cookies will be visible for all routes when html5mode is enabled.
+	     *
+	     * @example
+	     *
+	     * ```js
+	     * angular.module('cookiesProviderExample', ['ngCookies'])
+	     *   .config(['$cookiesProvider', function($cookiesProvider) {
+	     *     // Setting default options
+	     *     $cookiesProvider.defaults.domain = 'foo.com';
+	     *     $cookiesProvider.defaults.secure = true;
+	     *   }]);
+	     * ```
+	     **/
+	    var defaults = this.defaults = {};
+
+	    function calcOptions(options) {
+	      return options ? angular.extend({}, defaults, options) : defaults;
+	    }
+
+	    /**
+	     * @ngdoc service
+	     * @name $cookies
+	     *
+	     * @description
+	     * Provides read/write access to browser's cookies.
+	     *
+	     * <div class="alert alert-info">
+	     * Up until Angular 1.3, `$cookies` exposed properties that represented the
+	     * current browser cookie values. In version 1.4, this behavior has changed, and
+	     * `$cookies` now provides a standard api of getters, setters etc.
+	     * </div>
+	     *
+	     * Requires the {@link ngCookies `ngCookies`} module to be installed.
+	     *
+	     * @example
+	     *
+	     * ```js
+	     * angular.module('cookiesExample', ['ngCookies'])
+	     *   .controller('ExampleController', ['$cookies', function($cookies) {
+	     *     // Retrieving a cookie
+	     *     var favoriteCookie = $cookies.get('myFavorite');
+	     *     // Setting a cookie
+	     *     $cookies.put('myFavorite', 'oatmeal');
+	     *   }]);
+	     * ```
+	     */
+	    this.$get = ['$$cookieReader', '$$cookieWriter', function($$cookieReader, $$cookieWriter) {
+	      return {
+	        /**
+	         * @ngdoc method
+	         * @name $cookies#get
+	         *
+	         * @description
+	         * Returns the value of given cookie key
+	         *
+	         * @param {string} key Id to use for lookup.
+	         * @returns {string} Raw cookie value.
+	         */
+	        get: function(key) {
+	          return $$cookieReader()[key];
+	        },
+
+	        /**
+	         * @ngdoc method
+	         * @name $cookies#getObject
+	         *
+	         * @description
+	         * Returns the deserialized value of given cookie key
+	         *
+	         * @param {string} key Id to use for lookup.
+	         * @returns {Object} Deserialized cookie value.
+	         */
+	        getObject: function(key) {
+	          var value = this.get(key);
+	          return value ? angular.fromJson(value) : value;
+	        },
+
+	        /**
+	         * @ngdoc method
+	         * @name $cookies#getAll
+	         *
+	         * @description
+	         * Returns a key value object with all the cookies
+	         *
+	         * @returns {Object} All cookies
+	         */
+	        getAll: function() {
+	          return $$cookieReader();
+	        },
+
+	        /**
+	         * @ngdoc method
+	         * @name $cookies#put
+	         *
+	         * @description
+	         * Sets a value for given cookie key
+	         *
+	         * @param {string} key Id for the `value`.
+	         * @param {string} value Raw value to be stored.
+	         * @param {Object=} options Options object.
+	         *    See {@link ngCookies.$cookiesProvider#defaults $cookiesProvider.defaults}
+	         */
+	        put: function(key, value, options) {
+	          $$cookieWriter(key, value, calcOptions(options));
+	        },
+
+	        /**
+	         * @ngdoc method
+	         * @name $cookies#putObject
+	         *
+	         * @description
+	         * Serializes and sets a value for given cookie key
+	         *
+	         * @param {string} key Id for the `value`.
+	         * @param {Object} value Value to be stored.
+	         * @param {Object=} options Options object.
+	         *    See {@link ngCookies.$cookiesProvider#defaults $cookiesProvider.defaults}
+	         */
+	        putObject: function(key, value, options) {
+	          this.put(key, angular.toJson(value), options);
+	        },
+
+	        /**
+	         * @ngdoc method
+	         * @name $cookies#remove
+	         *
+	         * @description
+	         * Remove given cookie
+	         *
+	         * @param {string} key Id of the key-value pair to delete.
+	         * @param {Object=} options Options object.
+	         *    See {@link ngCookies.$cookiesProvider#defaults $cookiesProvider.defaults}
+	         */
+	        remove: function(key, options) {
+	          $$cookieWriter(key, undefined, calcOptions(options));
+	        }
+	      };
+	    }];
+	  }]);
+
+	angular.module('ngCookies').
+	/**
+	 * @ngdoc service
+	 * @name $cookieStore
+	 * @deprecated
+	 * sinceVersion="v1.4.0"
+	 * Please use the {@link ngCookies.$cookies `$cookies`} service instead.
+	 *
+	 * @requires $cookies
+	 *
+	 * @description
+	 * Provides a key-value (string-object) storage, that is backed by session cookies.
+	 * Objects put or retrieved from this storage are automatically serialized or
+	 * deserialized by angular's toJson/fromJson.
+	 *
+	 * Requires the {@link ngCookies `ngCookies`} module to be installed.
+	 *
+	 * @example
+	 *
+	 * ```js
+	 * angular.module('cookieStoreExample', ['ngCookies'])
+	 *   .controller('ExampleController', ['$cookieStore', function($cookieStore) {
+	 *     // Put cookie
+	 *     $cookieStore.put('myFavorite','oatmeal');
+	 *     // Get cookie
+	 *     var favoriteCookie = $cookieStore.get('myFavorite');
+	 *     // Removing a cookie
+	 *     $cookieStore.remove('myFavorite');
+	 *   }]);
+	 * ```
+	 */
+	 factory('$cookieStore', ['$cookies', function($cookies) {
+
+	    return {
+	      /**
+	       * @ngdoc method
+	       * @name $cookieStore#get
+	       *
+	       * @description
+	       * Returns the value of given cookie key
+	       *
+	       * @param {string} key Id to use for lookup.
+	       * @returns {Object} Deserialized cookie value, undefined if the cookie does not exist.
+	       */
+	      get: function(key) {
+	        return $cookies.getObject(key);
+	      },
+
+	      /**
+	       * @ngdoc method
+	       * @name $cookieStore#put
+	       *
+	       * @description
+	       * Sets a value for given cookie key
+	       *
+	       * @param {string} key Id for the `value`.
+	       * @param {Object} value Value to be stored.
+	       */
+	      put: function(key, value) {
+	        $cookies.putObject(key, value);
+	      },
+
+	      /**
+	       * @ngdoc method
+	       * @name $cookieStore#remove
+	       *
+	       * @description
+	       * Remove given cookie
+	       *
+	       * @param {string} key Id of the key-value pair to delete.
+	       */
+	      remove: function(key) {
+	        $cookies.remove(key);
+	      }
+	    };
+
+	  }]);
+
+	/**
+	 * @name $$cookieWriter
+	 * @requires $document
+	 *
+	 * @description
+	 * This is a private service for writing cookies
+	 *
+	 * @param {string} name Cookie name
+	 * @param {string=} value Cookie value (if undefined, cookie will be deleted)
+	 * @param {Object=} options Object with options that need to be stored for the cookie.
+	 */
+	function $$CookieWriter($document, $log, $browser) {
+	  var cookiePath = $browser.baseHref();
+	  var rawDocument = $document[0];
+
+	  function buildCookieString(name, value, options) {
+	    var path, expires;
+	    options = options || {};
+	    expires = options.expires;
+	    path = angular.isDefined(options.path) ? options.path : cookiePath;
+	    if (angular.isUndefined(value)) {
+	      expires = 'Thu, 01 Jan 1970 00:00:00 GMT';
+	      value = '';
+	    }
+	    if (angular.isString(expires)) {
+	      expires = new Date(expires);
+	    }
+
+	    var str = encodeURIComponent(name) + '=' + encodeURIComponent(value);
+	    str += path ? ';path=' + path : '';
+	    str += options.domain ? ';domain=' + options.domain : '';
+	    str += expires ? ';expires=' + expires.toUTCString() : '';
+	    str += options.secure ? ';secure' : '';
+
+	    // per http://www.ietf.org/rfc/rfc2109.txt browser must allow at minimum:
+	    // - 300 cookies
+	    // - 20 cookies per unique domain
+	    // - 4096 bytes per cookie
+	    var cookieLength = str.length + 1;
+	    if (cookieLength > 4096) {
+	      $log.warn('Cookie \'' + name +
+	        '\' possibly not set or overflowed because it was too large (' +
+	        cookieLength + ' > 4096 bytes)!');
+	    }
+
+	    return str;
+	  }
+
+	  return function(name, value, options) {
+	    rawDocument.cookie = buildCookieString(name, value, options);
+	  };
+	}
+
+	$$CookieWriter.$inject = ['$document', '$log', '$browser'];
+
+	angular.module('ngCookies').provider('$$cookieWriter', /** @this */ function $$CookieWriterProvider() {
+	  this.$get = $$CookieWriter;
+	});
+
+
+	})(window, window.angular);
+
+
+/***/ },
+/* 6 */
+/***/ function(module, exports, __webpack_require__) {
+
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* WEBPACK VAR INJECTION */(function(global, module) {/**
 	 * @license
 	 * Lodash <https://lodash.com/>
@@ -53165,10 +53563,10 @@
 	  }
 	}.call(this));
 
-	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }()), __webpack_require__(5)(module)))
+	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }()), __webpack_require__(7)(module)))
 
 /***/ },
-/* 5 */
+/* 7 */
 /***/ function(module, exports) {
 
 	module.exports = function(module) {
@@ -53184,44 +53582,51 @@
 
 
 /***/ },
-/* 6 */
+/* 8 */
 /***/ function(module, exports, __webpack_require__) {
 
 	angular.module("Home", []);
 
-	__webpack_require__(7);
-
-/***/ },
-/* 7 */
-/***/ function(module, exports) {
-
-	function HomeController() {  
-	  var $ctrl = this;
-	  $ctrl.foo = "Foo!";
-	  console.log($ctrl); // should print out the controller object
-	}
-
-	angular.module("Home")  
-	  .controller("HomeController", [
-	    HomeController
-	  ]);
-
-/***/ },
-/* 8 */
-/***/ function(module, exports, __webpack_require__) {
-
-	angular.module("Users", []);
-
 	__webpack_require__(9);
-	__webpack_require__(10);
 
 /***/ },
 /* 9 */
 /***/ function(module, exports) {
 
+	function HomeController(LocalAuth) {  
+	  var $ctrl = this;
+	  
+	  if (!LocalAuth.isAuthed) {
+	    $ctrl.isAuthed = false;
+	  } else {
+	    $ctrl.isAuthed = true;
+	  }
+
+
+	}
+
+	angular.module("Home")  
+	  .controller("HomeController", [
+	    "LocalAuth",
+	    HomeController
+	  ]);
+
+/***/ },
+/* 10 */
+/***/ function(module, exports, __webpack_require__) {
+
+	angular.module("Users", []);
+
+	__webpack_require__(11);
+	__webpack_require__(12);
+
+/***/ },
+/* 11 */
+/***/ function(module, exports) {
+
 	function UsersController(UsersService) {  
 	  var $ctrl = this;
-
+	  console.log(arguments);
 	  /* Stored game objects. */
 	  $ctrl.users = [];
 
@@ -53238,11 +53643,12 @@
 	angular.module("Users")  
 	  .controller("UsersController", [
 	    "UsersService",
+	    "api",
 	    UsersController
 	  ]);
 
 /***/ },
-/* 10 */
+/* 12 */
 /***/ function(module, exports) {
 
 	function UsersService($resource) {  
@@ -53275,7 +53681,58 @@
 	  .service("UsersService", ["$resource", UsersService]);
 
 /***/ },
-/* 11 */
+/* 13 */
+/***/ function(module, exports) {
+
+	function NavButtonController(/*$scope, $elem, $attrs*/UserStore) {
+	  var ctrl = this;
+
+	  console.log(ctrl);
+	  console.log(UserStore);
+
+	  ctrl.isAuthed = UserStore.isAuthed;
+	}
+
+	NavButtonController.$inject = ["UserStore"];
+
+	angular.module("NavButton", [])
+	  .component("navButton", {
+	    templateUrl: "static/app/components/navbar/navButton/button.html",
+	    controller: NavButtonController
+	  });
+
+/***/ },
+/* 14 */
+/***/ function(module, exports) {
+
+	angular.module("myApp")
+	  .factory("authApi", function($resource) {
+	    function add_auth_header(data, headersGetter) {
+	      // as per HTTP authentication spec [1], credentials must be
+	      // encoded in base64. Lets use window.btoa [2]
+	      var headers = headersGetter();
+	      headers["Authorization"] = ("Basic " + btoa(data.username +
+	                    ":" + data.password));
+	    }
+	    // defining the endpoints. Note we escape url trailing dashes: Angular
+	    // strips unescaped trailing slashes. Problem as Django redirects urls
+	    // not ending in slashes to url that ends in slash for SEO reasons, unless
+	    // we tell Django not to [3]. This is a problem as the POST data cannot
+	    // be sent with the redirect. So we want Angular to not strip the slashes!
+	    return {
+	      auth: $resource(_urlPrefixes.API + "auth\\/", {}, {
+	        isAuthed: {method: "GET", transformRequest: add_auth_header},
+	        login: {method: "POST", transformRequest: add_auth_header},
+	        logout: {method: "DELETE"}
+	      }),
+	      users: $resource(_urlPrefixes.API + "users\\/", {}, {
+	        create: {method: "POST"}
+	      })
+	    };
+	  });
+
+/***/ },
+/* 15 */
 /***/ function(module, exports) {
 
 	function routesConfig($routeProvider) {  

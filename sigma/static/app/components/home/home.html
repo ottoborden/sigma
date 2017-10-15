@@ -1,5 +1,10 @@
+<ng-include src="'static/app/components/navbar/navbar.html'"></ng-include>
+
 <div ng-controller="HomeController as ctrl">  
     <div>
         <h1>Home!</h1>
+        <h3>{{ ctrl.isAuthed }}</h3>
     </div>
-</div>  
+</div>
+
+<ng-include src="'static/app/components/footer/footer.html'"></ng-include>

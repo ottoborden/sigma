@@ -23,11 +23,13 @@
         "no-console": 0
     },
     "globals": {
+        "$": true,
         "_": true,
         "_urlPrefixes": true,
         "angular": true,
         "inject": true,
-        "window": true
+        "window": true,
+        "btoa": true
     }
     // "colors": true
 }

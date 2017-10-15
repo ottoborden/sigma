@@ -1,10 +1,17 @@
-function HomeController() {  
+function HomeController(LocalAuth) {  
   var $ctrl = this;
-  $ctrl.foo = "Foo!";
-  console.log($ctrl); // should print out the controller object
+  
+  if (!LocalAuth.isAuthed) {
+    $ctrl.isAuthed = false;
+  } else {
+    $ctrl.isAuthed = true;
+  }
+
+
 }
 
 angular.module("Home")  
   .controller("HomeController", [
+    "LocalAuth",
     HomeController
   ]);
