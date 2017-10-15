@@ -130,7 +130,7 @@ STATIC_URL = '/static/'
 # Extra places for collectstatic to find static files.
 STATICFILES_DIRS = [
     os.path.join(PROJECT_ROOT, 'static'),
-    ('node_modules', 'static/node_modules'),
+    ('node_modules', 'sigma/static/node_modules'),
 ]
 
 # Simplified static file serving.
